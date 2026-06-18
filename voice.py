@@ -7,18 +7,16 @@ MODEL_DIR = os.path.expanduser("~/.vosk/vosk-model-small-ru-0.22")
 MODEL_ZIP = os.path.expanduser("~/.vosk/vosk-model-small-ru-0.22.zip")
 MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
 SAMPLE_RATE = 16000
-HOTKEY = 'ctrl+shift+v'
 
 def download_model():
     os.makedirs(os.path.dirname(MODEL_DIR), exist_ok=True)
-    print(f"Downloading Vosk Russian model (46MB)...")
-    sys.stdout.flush()
+    print("Downloading Vosk Russian model (46MB)...", flush=True)
     urllib.request.urlretrieve(MODEL_URL, MODEL_ZIP)
-    print("Extracting...")
+    print("Extracting...", flush=True)
     with zipfile.ZipFile(MODEL_ZIP, 'r') as z:
         z.extractall(os.path.dirname(MODEL_DIR))
     os.remove(MODEL_ZIP)
-    print("Model ready.")
+    print("Model ready.", flush=True)
 
 if not os.path.exists(MODEL_DIR):
     download_model()
@@ -58,23 +56,26 @@ def finish():
     if text:
         keyboard.write(text)
 
-def toggle():
+def on_key(e):
     global recording
-    if not recording:
-        recording = True
-        print("[REC]")
-    else:
-        recording = False
-        print("[TRN]")
-        finish()
-        print("[RDY]")
+    if e.name == 'right ctrl':
+        if e.event_type == 'down' and not recording:
+            recording = True
+            print("[REC]", end=' ', flush=True)
+        elif e.event_type == 'up' and recording:
+            recording = False
+            print("[TRN]", end=' ', flush=True)
+            finish()
+            print("[RDY]", end=' ', flush=True)
+
+keyboard.block_key('right ctrl')
+keyboard.hook(on_key)
 
 stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype='int16', callback=callback)
 threading.Thread(target=worker, daemon=True).start()
 stream.start()
 
 print("=== Voice Input (Vosk) ===")
-print(f"Hotkey: {HOTKEY} — press to start/stop recording")
+print("Hold RIGHT CTRL to record, release to transcribe and type")
 print("Ready.")
-keyboard.add_hotkey(HOTKEY, toggle)
 keyboard.wait()
