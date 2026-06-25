@@ -1,7 +1,8 @@
-import os, queue, sys, threading, time, json, urllib.request, zipfile
+import os, queue, sys, threading, time, json, urllib.request, zipfile, signal
+os.environ["VOSK_LOG_LEVEL"] = "-1"
 import sounddevice as sd
-import vosk
 import keyboard
+import vosk
 
 MODEL_DIR = os.path.expanduser("~/.vosk/vosk-model-small-ru-0.22")
 MODEL_ZIP = os.path.expanduser("~/.vosk/vosk-model-small-ru-0.22.zip")
@@ -25,6 +26,7 @@ model = vosk.Model(MODEL_DIR)
 recognizer = vosk.KaldiRecognizer(model, SAMPLE_RATE)
 
 recording = False
+running = True
 audio_queue = queue.Queue()
 recorded = []
 
@@ -33,8 +35,8 @@ def callback(indata, frames, time_info, status):
         audio_queue.put(indata.copy())
 
 def worker():
-    global recording, recorded
-    while True:
+    global recording, recorded, running
+    while running:
         if recording:
             try:
                 recorded.append(audio_queue.get(timeout=0.1))
@@ -77,5 +79,14 @@ stream.start()
 
 print("=== Voice Input (Vosk) ===")
 print("Hold RIGHT CTRL to record, release to transcribe and type")
+print("Ctrl+C to exit")
 print("Ready.")
-keyboard.wait()
+
+signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
+try:
+    keyboard.wait()
+except KeyboardInterrupt:
+    pass
+finally:
+    running = False
+    stream.stop()

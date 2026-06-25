@@ -42,3 +42,6 @@ blob-report/
 
 # Nix build output
 result
+
+# Vosk DLLs (Python approach uses pip package)
+src-tauri/resources/vosk/
